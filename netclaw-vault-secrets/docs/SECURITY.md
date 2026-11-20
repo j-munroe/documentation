@@ -54,6 +54,14 @@ Writes require `create` / `update` on `secret/data/...` and should be rare for a
 - Protected variables + protected runners for prod
 - MR pipelines: inventory read only, no `prod/` secrets
 
+## Ansible & Dev Container guardrails
+
+- Prefer HashiCorp Vault lookups over Ansible Vault files for team secrets
+- `no_log: true` on tasks that handle passwords / enable / tokens
+- Dev Containers: secrets only via `remoteEnv` / token mount — never `Dockerfile ENV` or committed `.env`
+- CI JWT identity ≠ human OIDC identity (separate audit principals)
+- No plaintext fallback (`default(old_vault_var)`) left in prod playbooks after cutover
+
 ---
 
 ## NetClaw guardrails

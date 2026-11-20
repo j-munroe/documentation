@@ -21,7 +21,7 @@ vault kv put secret/network/lab/shared/netclaw \
   password="CHANGE_ME"
 
 # Load policies if present
-for p in netclaw-read gitlab-ci netbox-agent netclaw-change; do
+for p in netclaw-read gitlab-ci netbox-agent netclaw-change ansible-automation; do
   f="$ROOT/policies/${p}.hcl"
   if [[ -f "$f" ]]; then
     vault policy write "$p" "$f"

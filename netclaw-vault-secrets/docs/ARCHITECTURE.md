@@ -5,7 +5,8 @@
 | Zone | Components | Secrets access |
 |------|------------|----------------|
 | **Secrets core** | Vault cluster, unseal operators, audit storage | All mounts (admin only) |
-| **CI** | GitLab, GitLab Runners | JWT → role-scoped KV paths |
+| **CI** | GitLab, GitLab Runners, Ansible in CI | JWT → role-scoped KV paths |
+| **Workstation** | VS Code Dev Containers, local Ansible | OIDC/token/AppRole via host → `remoteEnv` |
 | **Inventory** | NetBox Community, optional Orb Agent | Token in Vault; device *paths* in NetBox |
 | **Agent** | NetClaw + Vault MCP + DefenseClaw | AppRole → read (default); change role gated |
 | **Network devices** | Routers/switches/firewalls | Accept SSH cert/OTP or static user from Vault |
@@ -22,15 +23,25 @@ Engineer → NetClaw chat
         → evidence returned to chat (no secrets)
 ```
 
-## Data flow (CI)
+## Data flow (CI / Ansible)
 
 ```
 GitLab job (protected branch)
   → id_tokens JWT
   → Vault auth/jwt
-  → secrets:vault → temp files in job
-  → Ansible / scripts
+  → VAULT_TOKEN or secrets:vault files
+  → Ansible community.hashi_vault lookups
   → devices / APIs
+```
+
+## Data flow (Dev Container)
+
+```
+Engineer → vault login (OIDC) on host
+        → VAULT_TOKEN / ~/.vault-token
+        → Dev Container remoteEnv / mount
+        → same Ansible playbooks / scripts
+        → Vault audit records human identity
 ```
 
 ## What lives where
@@ -41,15 +52,16 @@ GitLab job (protected branch)
 | Vault path / credential role name | **NetBox** custom field or naming convention |
 | Username / password / enable / API tokens | **Vault KV** |
 | Short-lived SSH | **Vault SSH engine** |
-| Automation code | **GitLab** |
+| Automation code / Dev Container definition | **GitLab** (no secret values) |
 | Agent skills / MCP config | **NetClaw host** (no secret values in git) |
 
 ## Auth method map
 
 | Client | Auth | Policy |
 |--------|------|--------|
-| Human admins | OIDC or userpass + MFA (optional) | admin / ops |
-| GitLab CI | JWT | `gitlab-ci` (env-scoped) |
+| Human admins / Dev Containers | OIDC or short-lived token | lab read / ops |
+| GitLab CI / Ansible in CI | JWT | `gitlab-ci` or `ansible-automation` |
+| Ansible controller (non-CI) | AppRole | `ansible-automation` |
 | NetClaw | AppRole | `netclaw-read` / `netclaw-change` |
 | Orb / discovery | AppRole or token | `netbox-agent` |
 

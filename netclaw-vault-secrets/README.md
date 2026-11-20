@@ -7,6 +7,8 @@ Workplan and install setup for **HashiCorp Vault** as the secrets system of reco
 | **HashiCorp Vault** | Secrets vault (SSH creds, API tokens, short-lived certs) |
 | **GitLab (on-prem)** | Source control + CI/CD JWT auth into Vault |
 | **GitLab Runners** | Runtime that fetches secrets at job start |
+| **Ansible playbooks** | Runtime lookups via `community.hashi_vault` (CI + local) |
+| **VS Code Dev Containers** | Host Vault auth → `remoteEnv` / token mount (no secrets in image) |
 | **NetBox Community** | Inventory / source of truth (paths & metadata, not passwords) |
 | **NetClaw** | Agentic network engineer via Vault MCP |
 
@@ -26,6 +28,8 @@ Workplan and install setup for **HashiCorp Vault** as the secrets system of reco
 | [INSTALL.md](docs/INSTALL.md) | End-to-end install and bootstrap |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Trust boundaries and data flow |
 | [GITLAB.md](docs/GITLAB.md) | JWT auth + Runner secret injection |
+| [ANSIBLE.md](docs/ANSIBLE.md) | Migrate playbooks off Ansible Vault / CI passwords |
+| [DEVCONTAINERS.md](docs/DEVCONTAINERS.md) | VS Code Dev Containers without committed secrets |
 | [NETBOX.md](docs/NETBOX.md) | Inventory references, tokens, Orb Agent |
 | [NETCLAW.md](docs/NETCLAW.md) | Vault MCP, policies, safe agent access |
 | [SECURITY.md](docs/SECURITY.md) | Least privilege, audit, rotation |
@@ -41,17 +45,17 @@ cd scripts
 ./04-configure-approle.sh
 ```
 
-Then wire GitLab JWT (see [GITLAB.md](docs/GITLAB.md)) and NetClaw MCP (see [NETCLAW.md](docs/NETCLAW.md)).
+Then wire GitLab JWT ([GITLAB.md](docs/GITLAB.md)), Ansible ([ANSIBLE.md](docs/ANSIBLE.md)), Dev Containers ([DEVCONTAINERS.md](docs/DEVCONTAINERS.md)), and NetClaw MCP ([NETCLAW.md](docs/NETCLAW.md)).
 
 ## Package layout
 
 ```
 netclaw-vault-secrets/
 ├── README.md
-├── docs/           # Workplan + install guides
+├── docs/           # Workplan + install + transition guides
 ├── policies/       # Example Vault HCL policies
 ├── scripts/        # Bootstrap helpers (lab/prod-shaped)
-└── examples/       # GitLab CI, Orb Agent, NetClaw config snippets
+└── examples/       # GitLab CI, Ansible, Dev Container, Orb, NetClaw snippets
 ```
 
 ## Promote to its own repository

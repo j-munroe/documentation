@@ -1,0 +1,12 @@
+---
+# Plaintext path map only — safe to commit.
+# Copy to group_vars/all/vault_paths.yml in your playbook repo.
+
+vault_mount: secret
+credential_env: lab
+
+# Per-host path: secret/network/lab/<site>/<inventory_hostname>/credentials
+# Override site via host_vars or NetBox-driven inventory plugins.
+vault_site: dc1
+device_cred_path: "network/{{ credential_env }}/{{ vault_site }}/{{ inventory_hostname }}/credentials"
+netbox_secret_path: "platform/netbox"

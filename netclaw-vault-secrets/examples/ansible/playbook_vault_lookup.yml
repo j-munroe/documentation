@@ -1,0 +1,25 @@
+---
+# Minimal example: load device creds from Vault KV v2 for network hosts.
+# Requires VAULT_ADDR + token/AppRole/JWT env (see docs/ANSIBLE.md).
+
+- name: Lab device facts via Vault-backed credentials
+  hosts: network
+  gather_facts: false
+  vars:
+    _creds: "{{ lookup('community.hashi_vault.vault_kv2_get', device_cred_path, engine_mount_point=vault_mount) }}"
+    ansible_user: "{{ _creds.secret.username }}"
+    ansible_ssh_pass: "{{ _creds.secret.password }}"
+    ansible_become_password: "{{ _creds.secret.enable_secret }}"
+    ansible_connection: network_cli
+    ansible_become: true
+    ansible_become_method: enable
+  tasks:
+    - name: Show authenticated username only
+      ansible.builtin.debug:
+        msg: "Using Vault creds for user {{ ansible_user }} on {{ inventory_hostname }}"
+
+    - name: Example privileged op (enable secret not logged)
+      cisco.ios.ios_command:
+        commands: "show version"
+      no_log: true
+      when: ansible_network_os | default('') == 'ios'

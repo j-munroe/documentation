@@ -1,0 +1,26 @@
+{
+  "name": "network-automation-vault",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "remoteUser": "vscode",
+  "remoteEnv": {
+    "VAULT_ADDR": "${localEnv:VAULT_ADDR}",
+    "VAULT_TOKEN": "${localEnv:VAULT_TOKEN}",
+    "VAULT_NAMESPACE": "${localEnv:VAULT_NAMESPACE}",
+    "ANSIBLE_HASHI_VAULT_ADDR": "${localEnv:VAULT_ADDR}",
+    "ANSIBLE_HASHI_VAULT_TOKEN": "${localEnv:VAULT_TOKEN}"
+  },
+  "mounts": [
+    "source=${localEnv:HOME}/.vault-token,target=/home/vscode/.vault-token,type=bind,readonly"
+  ],
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "redhat.ansible",
+        "ms-python.python"
+      ]
+    }
+  }
+}

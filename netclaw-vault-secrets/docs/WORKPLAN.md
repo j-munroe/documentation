@@ -2,11 +2,13 @@
 
 ## Goal
 
-Replace static GitLab CI variables / ad-hoc credential stores with **HashiCorp Vault** as the single secrets system of record for network troubleshooting automation and NetClaw agents.
+Replace static GitLab CI variables, Ansible Vault files, Dev Container `.env` secrets, and other ad-hoc credential stores with **HashiCorp Vault** as the single secrets system of record for network troubleshooting automation and NetClaw agents.
 
 ## Current state (baseline)
 
 - GitLab on-prem + GitLab Runners
+- Ansible playbooks (often Ansible Vault and/or CI-injected passwords)
+- VS Code Dev Containers that need the same secrets locally
 - NetBox Community (inventory SoT)
 - Credentials likely in CI variables, local files, or device shared accounts
 - Target: NetClaw for advanced agentic troubleshooting
@@ -18,14 +20,14 @@ Replace static GitLab CI variables / ad-hoc credential stores with **HashiCorp V
                  │  HashiCorp Vault │
                  │  (secrets SoT)   │
                  └────────┬────────┘
-           ┌──────────────┼──────────────┐
-           │              │              │
-    GitLab JWT      NetClaw AppRole   Orb/NetBox
-    (CI jobs)       / JWT (agent)     (discovery)
-           │              │              │
-           ▼              ▼              ▼
-     Ansible/pyATS    Device SSH     Cred lookup
-     / scripts        via MCP        by path ref
+      ┌───────────┬───────┼───────┬───────────┐
+      │           │       │       │           │
+ GitLab JWT  Ansible   Dev Cont. NetClaw   Orb/NetBox
+ (CI jobs)   lookups   remoteEnv AppRole   (discovery)
+      │           │       │       │           │
+      └───────────┴───────┼───────┴───────────┘
+                          ▼
+                   Devices / APIs
 ```
 
 **Rules**
@@ -34,6 +36,7 @@ Replace static GitLab CI variables / ad-hoc credential stores with **HashiCorp V
 2. Prefer short-lived SSH certs/OTP over static passwords for agents.
 3. Separate **read/troubleshoot** vs **change/write** Vault policies.
 4. Every secret read is audited.
+5. Same Vault **paths** for CI Ansible and Dev Container Ansible; different **auth** identities.
 
 ---
 
@@ -43,7 +46,7 @@ Replace static GitLab CI variables / ad-hoc credential stores with **HashiCorp V
 
 - [ ] Choose Vault edition: **OSS** (start here) or Enterprise (namespaces, replication)
 - [ ] Choose HA: single node (lab) vs Raft/Consul (prod)
-- [ ] Choose auth methods: **JWT** (GitLab), **AppRole** (NetClaw/services), optional OIDC (humans)
+- [ ] Choose auth methods: **JWT** (GitLab), **AppRole** (NetClaw/Ansible controllers), **OIDC** (humans / Dev Containers)
 - [ ] Confirm TLS: internal CA or public cert for `VAULT_ADDR`
 - [ ] Confirm network path: Runners, NetBox host, NetClaw host → Vault:8200
 
@@ -122,6 +125,44 @@ ssh/roles/netclaw-change
 - No device password visible in job logs
 
 **Guide:** [GITLAB.md](GITLAB.md)
+
+---
+
+## Phase 3b — Ansible playbooks
+
+**Tasks**
+
+- [ ] Inventory Ansible Vault files, plaintext creds, and CI password variables per repo
+- [ ] Install `community.hashi_vault` (+ `hvac`) in CI images and Dev Containers
+- [ ] Introduce plaintext `vault_paths.yml`; switch one lab playbook to `vault_kv2_get`
+- [ ] Wire GitLab JWT → `VAULT_TOKEN` (or `secrets:vault` files) for Ansible jobs
+- [ ] Apply `no_log: true` on credential-sensitive tasks; remove Ansible Vault after lab sign-off
+
+**Acceptance**
+
+- Lab playbook runs in CI with **no** Ansible Vault password and **no** device password CI variables
+- Vault audit shows JWT/AppRole identity on secret reads
+
+**Guide:** [ANSIBLE.md](ANSIBLE.md) · examples in `examples/ansible/`
+
+---
+
+## Phase 3c — VS Code Dev Containers
+
+**Tasks**
+
+- [ ] Strip secrets from `.env`, Dockerfile, and `devcontainer.json`
+- [ ] Pass `VAULT_ADDR` / `VAULT_TOKEN` via `remoteEnv` + optional `~/.vault-token` mount
+- [ ] Document host `vault login` (OIDC) before “Reopen in Container”
+- [ ] Smoke-test: same lab playbook as CI, using engineer identity (not CI JWT)
+
+**Acceptance**
+
+- Container rebuild works with empty git tree for secrets
+- Missing token fails closed (no plaintext fallback)
+- Audit distinguishes human/dev AppRole from CI JWT
+
+**Guide:** [DEVCONTAINERS.md](DEVCONTAINERS.md) · examples in `examples/devcontainer/`
 
 ---
 
@@ -204,12 +245,14 @@ ssh/roles/netclaw-change
 | 2 | 1 Install | 0 |
 | 3 | 2 Engines/paths | 1 |
 | 4 | 3 GitLab | 2 |
-| 5 | 4 NetBox | 2 |
-| 6 | 5 NetClaw | 2 (+ ideally 4) |
-| 7 | 6 SSH engine | 5 |
-| 8 | 7 Operate | 3–6 |
+| 5 | 3b Ansible | 2–3 |
+| 6 | 3c Dev Containers | 2 (+ 3b for shared playbooks) |
+| 7 | 4 NetBox | 2 |
+| 8 | 5 NetClaw | 2 (+ ideally 4) |
+| 9 | 6 SSH engine | 5 |
+| 10 | 7 Operate | 3–6 |
 
-Phases 3 and 4 can run in parallel after Phase 2.
+Phases 3 / 3b / 4 can overlap after Phase 2. Do 3c once lab Vault paths exist so local and CI stay aligned.
 
 ---
 
@@ -224,6 +267,8 @@ Phases 3 and 4 can run in parallel after Phase 2.
 ## Success metrics
 
 - Zero production device passwords in GitLab CI variables
+- Zero Ansible Vault / committed `.env` passwords required for lab (then prod) playbooks
+- Dev Containers run the same playbooks using Vault auth (no secrets in the image)
 - 100% of NetClaw device access audited in Vault
 - Separate policies for troubleshoot vs change
 - Time-to-rotate NetBox API token &lt; 15 minutes (procedure only; no code deploy)

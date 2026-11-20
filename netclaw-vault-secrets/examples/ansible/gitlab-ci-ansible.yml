@@ -1,0 +1,26 @@
+# Fragment: GitLab CI authenticates to Vault, then runs Ansible with lookups.
+# Merge into your project .gitlab-ci.yml; see docs/GITLAB.md and docs/ANSIBLE.md.
+
+stages:
+  - automate
+
+variables:
+  VAULT_SERVER_URL: "https://vault.example.local:8200"
+  VAULT_AUTH_ROLE: "gitlab-network-lab"
+  VAULT_ADDR: "$VAULT_SERVER_URL"
+
+ansible_lab:
+  stage: automate
+  image: "your.registry.example/network-ansible:latest"
+  id_tokens:
+    VAULT_ID_TOKEN:
+      aud: https://vault.example.local
+  before_script:
+    - ansible-galaxy collection install -r requirements.yml
+    - export VAULT_TOKEN="$(vault write -field=token auth/jwt/login role="${VAULT_AUTH_ROLE}" jwt="${VAULT_ID_TOKEN}")"
+    - export ANSIBLE_HASHI_VAULT_ADDR="${VAULT_ADDR}"
+    - export ANSIBLE_HASHI_VAULT_TOKEN="${VAULT_TOKEN}"
+  script:
+    - ansible-playbook -i inventory/lab playbooks/site.yml
+  rules:
+    - if: '$CI_COMMIT_REF_PROTECTED == "true"'
