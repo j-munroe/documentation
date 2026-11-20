@@ -1,0 +1,15 @@
+# Example Orb Agent secrets_manager stanza (NetBox Labs Discovery)
+# Replace auth method args; do not commit real role/secret ids.
+
+orb:
+  secrets_manager:
+    active: vault
+    sources:
+      vault:
+        address: "https://vault.example.local:8200"
+        timeout: 60
+        auth: "approle"
+        auth_args:
+          role_id: "${VAULT_ROLE_ID}"
+          secret_id: "${VAULT_SECRET_ID}"
+        schedule: "*/5 * * * *"

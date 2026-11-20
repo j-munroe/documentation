@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "vault-mcp": {
+      "command": "vault-mcp-server",
+      "args": [],
+      "env": {
+        "VAULT_ADDR": "${VAULT_ADDR}",
+        "VAULT_TOKEN": "${VAULT_TOKEN}",
+        "VAULT_NAMESPACE": "${VAULT_NAMESPACE}"
+      }
+    }
+  }
+}

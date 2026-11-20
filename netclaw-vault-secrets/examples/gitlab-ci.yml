@@ -1,0 +1,35 @@
+# Example GitLab CI job using Vault JWT + secrets:vault
+# Copy patterns into your network automation project; adjust paths/roles.
+
+stages:
+  - validate
+
+variables:
+  VAULT_SERVER_URL: "https://vault.example.local:8200"
+  VAULT_AUTH_ROLE: "gitlab-network-lab"
+
+lab_secret_smoke:
+  stage: validate
+  id_tokens:
+    VAULT_ID_TOKEN:
+      aud: https://vault.example.local
+  secrets:
+    NETBOX_TOKEN:
+      vault: platform/netbox/api_token@secret
+      file: false
+      token: $VAULT_ID_TOKEN
+    DEVICE_PASSWORD:
+      vault: network/lab/dc1/lab-rtr-01/credentials/password@secret
+      file: true
+      token: $VAULT_ID_TOKEN
+  script:
+    - |
+      set -euo pipefail
+      echo "NETBOX_TOKEN length: ${#NETBOX_TOKEN}"
+      if [[ ! -s "${DEVICE_PASSWORD}" ]]; then
+        echo "DEVICE_PASSWORD file missing or empty" >&2
+        exit 1
+      fi
+      echo "Device password file OK (contents not printed)"
+  rules:
+    - if: '$CI_COMMIT_REF_PROTECTED == "true"'
