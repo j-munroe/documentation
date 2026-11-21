@@ -2,7 +2,7 @@
 
 ## NetClaw / Vault secrets workplan
 
-Moved to **[j-munroe/Vault-Documentation](https://github.com/j-munroe/Vault-Documentation)**.
+Moved to **[j-munroe/NetClaw-Production-Install-Guide](https://github.com/j-munroe/NetClaw-Production-Install-Guide)** (NetClaw Production Install Guide).
 
 ---
 
